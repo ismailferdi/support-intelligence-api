@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from sqlalchemy import select, desc
 from sqlalchemy.exc import SQLAlchemyError
 from .db_models import Ticket, Analysis
 from .schemas import TicketRequest, TicketAnalysis
@@ -48,3 +49,24 @@ def save_analysis(session: Session, ticket_id: str, analysis: TicketAnalysis | N
     except SQLAlchemyError:
             session.rollback()
             raise
+
+
+def get_ticket_with_analysis(session: Session, ticket_id: str) -> dict | None:
+    ticket = session.scalar(
+        select(Ticket).where(Ticket.ticket_id == ticket_id)
+    )
+
+    if ticket is None:
+         return None
+
+    analysis = session.scalar(
+         select(Analysis)
+         .where(Analysis.ticket_id == ticket_id)
+         .order_by(desc(Analysis.created_at), desc(Analysis.id))
+         .limit(1)
+    )
+
+    return {
+         "ticket": ticket,
+         "analysis": analysis
+    }
