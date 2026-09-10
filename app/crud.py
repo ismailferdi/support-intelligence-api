@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 from sqlalchemy.exc import SQLAlchemyError
 from .db_models import Ticket, Analysis
 from .schemas import TicketRequest, TicketAnalysis
@@ -69,4 +69,39 @@ def get_ticket_with_analysis(session: Session, ticket_id: str) -> dict | None:
     return {
          "ticket": ticket,
          "analysis": analysis
+    }
+
+
+def get_analytics_summary(session: Session) -> dict:
+    analytics_summary = session.scalar(
+        select(
+            func.avg(Analysis.latency_ms).label("average_latency_ms"),
+            func.avg(Analysis.total_tokens).label("average_total_tokens"),
+            func.sum(Analysis.cost_usd).label("total_cost_usd"),
+            func.count(Analysis.id).label("count_of_analyses"),
+            func.sum(
+                func.case(
+                    (Analysis.success.is_(False), 1),
+                    else_=0
+                )
+            ).label("failed_analyses")
+        )
+    ).one()
+
+    count_of_analyses = analytics_summary.count_of_analyses or 0
+    failed_analyses = analytics_summary.failed_analyses or 0
+    average_latency_ms = analytics_summary.average_latency_ms
+    average_total_tokens = analytics_summary.average_total_tokens
+    total_cost_usd = analytics_summary.total_cost_usd or 0.0
+    if count_of_analyses != 0:
+        failure_rate = failed_analyses / count_of_analyses
+    else:
+        failure_rate = 0.0
+
+    return {
+          "average_latency_ms": average_latency_ms,
+          "average_total_tokens": average_total_tokens,
+          "total_cost_usd": total_cost_usd,
+          "count_of_analyses": count_of_analyses,
+          "failure_rate": failure_rate
     }
