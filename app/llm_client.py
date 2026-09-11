@@ -11,13 +11,13 @@ import json
 import tenacity
 from pydantic import ValidationError
 
-logger = logging.getLogger('support_api')
-
 from .config import settings
 from .pricing import estimate_cost
 from .prompt import TICKET_ANALYSIS_JSON_SCHEMA, build_system_prompt, build_user_prompt
 from .schemas import TicketRequest, TicketAnalysis
 from .token_utils import count_tokens, truncate_to_token_limit
+from .logging_config import logger
+
 
 client = openai.OpenAI(
     api_key=settings.openai_api_key,

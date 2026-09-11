@@ -50,6 +50,10 @@ def analyze_ticket_endpoint(
             success=True,
             error_message=None
         )
+        logger.info("ticket %s analyzed model=%s latency_ms=%.1f cost_usd=%f",
+            ticket.ticket_id, settings.openai_model,
+            usage["latency_ms"], usage["cost_usd"]
+        )
 
         return TicketAnalysisResponse(
             ticket_id=ticket.ticket_id,
@@ -61,6 +65,7 @@ def analyze_ticket_endpoint(
         )
 
     except (APIError, ValueError, ValidationError) as exc:
+        logger.exception("ticket %s analysis failed: %s", ticket.ticket_id, exc)
         save_analysis(
             session=session,
             ticket_id=ticket.ticket_id,
