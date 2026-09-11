@@ -1,4 +1,16 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
-app = FastAPI(title="Customer Support Intelligence API")
+from .db import init_db
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+app = FastAPI(
+    title="Customer Support Intelligence API",
+    lifespan=lifespan
+)
