@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .db import init_db, get_session
 from .schemas import TicketAnalysisResponse, TicketRequest
-from .crud import save_ticket, save_analysis
+from .crud import save_ticket, save_analysis, get_ticket_with_analysis
 from .llm_client import analyze_ticket, apply_review_rules
 
 
@@ -72,3 +72,16 @@ def analyze_ticket_endpoint(
             status_code=502,
             detail=f"Ticket analysis failed: {exc}",
         ) from exc
+
+
+@app.get('/tickets/{ticket_id}')
+def get_ticket_with_analysis_endpoint(session: Session, ticket_id: str) -> dict:
+    result = get_ticket_with_analysis(session, ticket_id)
+
+    if result is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Ticket not found."
+        )
+
+    return result
