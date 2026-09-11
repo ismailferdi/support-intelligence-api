@@ -14,3 +14,8 @@ app = FastAPI(
     title="Customer Support Intelligence API",
     lifespan=lifespan
 )
+
+
+app.get('/health')
+def health() -> dict[str, str]:
+    return {"status": "ok"}
