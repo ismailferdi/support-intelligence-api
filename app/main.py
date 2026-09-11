@@ -10,10 +10,12 @@ from .db import init_db, get_session
 from .schemas import TicketAnalysisResponse, TicketRequest
 from .crud import save_ticket, save_analysis, get_ticket_with_analysis, get_analytics_summary
 from .llm_client import analyze_ticket, apply_review_rules
+from .logging_config import logger
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Starting support-intelligence-api")
     init_db()
     yield
 
