@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from .config import settings
 from .db import init_db, get_session
 from .schemas import TicketAnalysisResponse, TicketRequest
-from .crud import save_ticket, save_analysis, get_ticket_with_analysis
+from .crud import save_ticket, save_analysis, get_ticket_with_analysis, get_analytics_summary
 from .llm_client import analyze_ticket, apply_review_rules
 
 
@@ -23,12 +23,12 @@ app = FastAPI(
 )
 
 
-app.get('/health')
+@app.get('/health', response_model=dict[str, str])
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-app.get('/tickets/analyze', response_model=TicketAnalysisResponse)
+@app.get('/tickets/analyze', response_model=TicketAnalysisResponse)
 def analyze_ticket_endpoint(
         ticket: TicketRequest,
         session: Session = Depends(get_session)
@@ -74,8 +74,11 @@ def analyze_ticket_endpoint(
         ) from exc
 
 
-@app.get('/tickets/{ticket_id}')
-def get_ticket_with_analysis_endpoint(session: Session, ticket_id: str) -> dict:
+@app.get('/tickets/{ticket_id}', response_model=dict)
+def get_ticket_with_analysis_endpoint(
+    ticket_id: str,
+    session: Session = Depends(get_session)
+) -> dict:
     result = get_ticket_with_analysis(session, ticket_id)
 
     if result is None:
@@ -85,3 +88,10 @@ def get_ticket_with_analysis_endpoint(session: Session, ticket_id: str) -> dict:
         )
 
     return result
+
+
+@app.get('/analytics/summary', response_model=dict)
+def get_analytics_summary_endpoint(
+    session: Session = Depends(get_session)
+) -> dict:
+    return get_analytics_summary(session)
