@@ -22,4 +22,6 @@ def get_session() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
+    # Local-dev shortcut only: creates tables directly.
+    # Real deployments must run `alembic upgrade head` instead.
     Base.metadata.create_all(bind=get_engine())
