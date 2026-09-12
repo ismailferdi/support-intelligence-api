@@ -9,7 +9,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from .config import settings
 from .db import init_db, get_session
-from .schemas import TicketAnalysisResponse, TicketRequest
+from .schemas import (
+    TicketAnalysisResponse,
+    TicketRequest,
+    TicketWithAnalysisResponse,
+)
 from .crud import (
     save_ticket,
     save_analysis,
@@ -121,11 +125,14 @@ def analyze_ticket_endpoint(
         ) from exc
 
 
-@app.get('/tickets/{ticket_id}', response_model=dict)
+@app.get(
+    '/tickets/{ticket_id}',
+    response_model=TicketWithAnalysisResponse,
+)
 def get_ticket_with_analysis_endpoint(
     ticket_id: str,
     session: Session = Depends(get_session)
-) -> dict:
+) -> TicketWithAnalysisResponse:
     """Fetch a ticket with its latest analysis, or raise 404 if unknown."""
     result = get_ticket_with_analysis(session, ticket_id)
 

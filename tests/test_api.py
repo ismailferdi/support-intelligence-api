@@ -118,6 +118,48 @@ def test_get_ticket_returns_404_for_unknown_id(api_client):
     assert client.get("/tickets/no-such-ticket").status_code == 404
 
 
+def test_get_ticket_returns_ticket_with_analysis(
+    api_client, sample_ticket
+):
+    client, _, engine = api_client
+    TestingSession = sessionmaker(
+        bind=engine, autocommit=False, autoflush=False
+    )
+    session = TestingSession()
+    crud.save_ticket(session, sample_ticket)
+    analysis, usage = _canned_result()
+    crud.save_analysis(
+        session, sample_ticket.ticket_id, analysis, usage, True, None
+    )
+    session.close()
+
+    response = client.get(f"/tickets/{sample_ticket.ticket_id}")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ticket"]["ticket_id"] == sample_ticket.ticket_id
+    assert body["ticket"]["subject"] == sample_ticket.subject
+    assert body["analysis"]["category"] == "billing"
+    assert body["analysis"]["success"] is True
+
+
+def test_get_ticket_returns_null_analysis_when_missing(
+    api_client, sample_ticket
+):
+    client, _, engine = api_client
+    TestingSession = sessionmaker(
+        bind=engine, autocommit=False, autoflush=False
+    )
+    session = TestingSession()
+    crud.save_ticket(session, sample_ticket)
+    session.close()
+
+    response = client.get(f"/tickets/{sample_ticket.ticket_id}")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["ticket"]["ticket_id"] == sample_ticket.ticket_id
+    assert body["analysis"] is None
+
+
 def test_analytics_summary_returns_expected_shape(api_client, sample_ticket):
     client, _, engine = api_client
     TestingSession = sessionmaker(
