@@ -4,6 +4,7 @@ from openai import APIError
 from pydantic import ValidationError
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
 
 from .config import settings
 from .db import init_db, get_session
@@ -35,21 +36,34 @@ def analyze_ticket_endpoint(
         ticket: TicketRequest,
         session: Session = Depends(get_session)
 ) -> TicketAnalysisResponse:
-    save_ticket(session, ticket)
+    try:
+        save_ticket(session, ticket)
+    except SQLAlchemyError as exc:
+        logger.exception("ticket %s database write failed (save_ticket): %s",
+                         ticket.ticket_id, exc)
+        raise HTTPException(status_code=503,
+            detail="Database unavailable, ticket not saved.") from exc
 
     
     try:
         analysis, usage = analyze_ticket(ticket)
         analysis = apply_review_rules(analysis)
 
-        save_analysis(
-            session=session,
-            ticket_id=ticket.ticket_id,
-            analysis=analysis,
-            usage=usage,
-            success=True,
-            error_message=None
-        )
+        try:
+            save_analysis(
+                        session=session,
+                        ticket_id=ticket.ticket_id,
+                        analysis=analysis,
+                        usage=usage,
+                        success=True,
+                        error_message=None
+                    )
+        except SQLAlchemyError as exc:
+            logger.exception("ticket %s database write failed (save_analysis): %s",
+                             ticket.ticket_id, exc)
+            raise HTTPException(status_code=503,
+                detail="Database unavailable, analysis not saved.") from exc
+        
         logger.info(
             "ticket %s analyzed model=%s latency_ms=%.1f cost_usd=%f total_tokens=%d",
             ticket.ticket_id, settings.openai_model,
@@ -70,14 +84,15 @@ def analyze_ticket_endpoint(
         logger.exception(
             "ticket %s analysis failed: %s", ticket.ticket_id, exc
         )
-        save_analysis(
-            session=session,
-            ticket_id=ticket.ticket_id,
-            analysis=None,
-            usage={},
-            success=False,
-            error_message=str(exc),
-        )
+        try:
+            save_analysis(session=session, ticket_id=ticket.ticket_id,
+                          analysis=None, usage={}, success=False,
+                          error_message=str(exc))
+        except SQLAlchemyError as db_exc:
+            logger.exception("ticket %s failure-record write failed: %s",
+                             ticket.ticket_id, db_exc)
+            raise HTTPException(status_code=503,
+                detail="Database unavailable.") from db_exc
 
         raise HTTPException(
             status_code=502,

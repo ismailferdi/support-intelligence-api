@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import select, desc, func
+from sqlalchemy import select, desc, func, case
 from sqlalchemy.exc import SQLAlchemyError
 from .db_models import Ticket, Analysis
 from .schemas import TicketRequest, TicketAnalysis
@@ -73,14 +73,14 @@ def get_ticket_with_analysis(session: Session, ticket_id: str) -> dict | None:
 
 
 def get_analytics_summary(session: Session) -> dict:
-    analytics_summary = session.scalar(
+    analytics_summary = session.execute(
         select(
             func.avg(Analysis.latency_ms).label("average_latency_ms"),
             func.avg(Analysis.total_tokens).label("average_total_tokens"),
             func.sum(Analysis.cost_usd).label("total_cost_usd"),
             func.count(Analysis.id).label("count_of_analyses"),
             func.sum(
-                func.case(
+                case(
                     (Analysis.success.is_(False), 1),
                     else_=0
                 )

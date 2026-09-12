@@ -19,7 +19,7 @@ FastAPI + SQLAlchemy + Alembic ticket-triage service. LLM via OpenAI-compatible 
 ## Architecture (`app/`)
 
 - `main.py` → `llm_client.analyze_ticket` → `apply_review_rules` → `crud.save_*`. Flow: `save_ticket` first (ticket never lost on LLM failure) → LLM → `save_analysis(success=True/False)`.
-- `config.py` singleton; `schemas.py` (TicketRequest/Analysis/Response); `prompt.py` (system/user builders + `TICKET_ANALYSIS_JSON_SCHEMA`); `token_utils.py`; `pricing.py`; `llm_client.py` (module-level `openai.OpenAI` client, tenacity retry); `db_models.py` (`tickets.ticket_id` unique+indexed, `analyses.ticket_id` FK); `db.py`; `crud.py`. `warmups/` is scratch — ignore for service changes.
+- `config.py` singleton; `schemas.py` (TicketRequest/Analysis/Response); `prompt.py` (system/user builders + `TICKET_ANALYSIS_JSON_SCHEMA`); `token_utils.py`; `pricing.py`; `llm_client.py` (module-level `openai.OpenAI` client, tenacity retry); `db_models.py` (`tickets.ticket_id` unique+indexed, `analyses.ticket_id` FK); `db.py`; `crud.py`; `logging_config.py` (module-level `support_api` logger). `warmups/` is scratch — ignore for service changes.
 
 ## Gotchas agents miss
 
@@ -28,4 +28,5 @@ FastAPI + SQLAlchemy + Alembic ticket-triage service. LLM via OpenAI-compatible 
 - **`save_analysis` never sets `model_used`** (column stays NULL); `main.py` returns `settings.openai_model` in the response instead. Don't read model from the DB.
 - **Retry/failure contract:** only `RateLimitError`/`APITimeoutError` retry (5 attempts, exp backoff `multiplier=2, min=2`); bad JSON → `ValueError`, bad schema → `ValidationError`, all surface as HTTP 502 with a `save_analysis(success=False)` row. `analyze_ticket` never returns partial results. Truncation applies to the whole `user_prompt` when `count_tokens > max_input_tokens`.
 - **Review rules are deterministic overrides** (`apply_review_rules`, `model_copy`): force `review_required=True` if `confidence < review_confidence_threshold` or (`sentiment == "negative"` and priority in `high`/`urgent`).
-- **Spec doc is stale:** `5-support-intelligence-api.md` describes OpenRouter vars/paths and a roadmap; several Parts (logging_config, tests, Docker, CI, hardening) are unchecked/not built. Follow executable code.
+- **Logging quirks:** `logging_config.py` adds its `StreamHandler(sys.stdout, "%(asctime)s | %(levelname)s | %(message)s")` unconditionally at import (no `if not logger.handlers` guard) → duplicate lines under `--reload`; it never sets a level, so the logger stays at `WARNING` and `main.py`'s `logger.info` success line (ticket/model/latency/cost/tokens) is suppressed by default. Failure path uses `logger.exception` and does emit. Import it (`from .logging_config import logger`, as `main.py`/`llm_client.py` do) — never `getLogger("support_api")` separately or re-add handlers.
+- **Spec doc is stale:** `5-support-intelligence-api.md` describes OpenRouter vars/paths and a roadmap; several Parts (tests, Docker, CI, hardening) are unchecked/not built. Follow executable code.
