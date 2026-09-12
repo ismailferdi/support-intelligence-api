@@ -7,19 +7,24 @@ pricing = {
     }
 }
 
-def estimate_cost(prompt_tokens: int, completion_tokens: int, model: str) -> float:
+
+def estimate_cost(
+    prompt_tokens: int, completion_tokens: int, model: str
+) -> float:
     input_cost = (prompt_tokens / 1000) * pricing[model]["input"]
     output_cost = (completion_tokens / 1000) * pricing[model]["output"]
     total_cost = input_cost + output_cost
     return total_cost
 
 
-
 completion = client.chat.completions.create(
     model="openai/gpt-oss-20b",
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
-        {"role": "user", "content": "What should I do if my order arrives damaged?"},
+        {
+            "role": "user",
+            "content": "What should I do if my order arrives damaged?",
+        },
     ],
     max_tokens=100,
 )
@@ -36,4 +41,3 @@ print(f"Prompt tokens: {usage.prompt_tokens}")
 print(f"Completion tokens: {usage.completion_tokens}")
 print(f"Total tokens: {usage.total_tokens}")
 print(f"Estimated cost: ${cost:.8f}")
-

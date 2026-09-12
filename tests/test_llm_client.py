@@ -23,7 +23,9 @@ def _valid_analysis(**overrides) -> TicketAnalysis:
     return TicketAnalysis(**base)
 
 
-def test_analyze_ticket_returns_valid_analysis(mock_openai_client, priced_model, sample_ticket):
+def test_analyze_ticket_returns_valid_analysis(
+    mock_openai_client, priced_model, sample_ticket
+):
     analysis, usage = llm_client.analyze_ticket(sample_ticket)
     assert isinstance(analysis, TicketAnalysis)
     assert analysis.category == "billing"
@@ -34,10 +36,11 @@ def test_analyze_ticket_returns_valid_analysis(mock_openai_client, priced_model,
     assert usage["latency_ms"] >= 0
 
 
-def test_analyze_ticket_raises_value_error_on_non_json(mock_openai_client, priced_model, sample_ticket):
-    mock_openai_client.chat.completions.create.return_value.choices[0].message.content = (
-        "this is not json {"
-    )
+def test_analyze_ticket_raises_value_error_on_non_json(
+    mock_openai_client, priced_model, sample_ticket
+):
+    response = mock_openai_client.chat.completions.create.return_value
+    response.choices[0].message.content = "this is not json {"
     with pytest.raises(ValueError, match="invalid JSON"):
         llm_client.analyze_ticket(sample_ticket)
 
@@ -45,9 +48,8 @@ def test_analyze_ticket_raises_value_error_on_non_json(mock_openai_client, price
 def test_analyze_ticket_raises_validation_error_on_schema_violation(
     mock_openai_client, priced_model, sample_ticket
 ):
-    mock_openai_client.chat.completions.create.return_value.choices[0].message.content = (
-        json.dumps({"category": "billing"})
-    )
+    response = mock_openai_client.chat.completions.create.return_value
+    response.choices[0].message.content = json.dumps({"category": "billing"})
     with pytest.raises(ValidationError):
         llm_client.analyze_ticket(sample_ticket)
 
@@ -61,7 +63,10 @@ def test_analyze_ticket_retries_rate_limit_then_succeeds(
         message="rate limited", response=response, body=None
     )
     ok_response = mock_openai_client.chat.completions.create.return_value
-    mock_openai_client.chat.completions.create.side_effect = [rate_limit_error, ok_response]
+    mock_openai_client.chat.completions.create.side_effect = [
+        rate_limit_error,
+        ok_response,
+    ]
 
     analysis, _ = llm_client.analyze_ticket(sample_ticket)
 
@@ -80,8 +85,12 @@ def test_analyze_ticket_truncates_oversized_body(
 
     llm_client.analyze_ticket(sample_ticket)
 
-    sent_messages = mock_openai_client.chat.completions.create.call_args[1]["messages"]
-    user_content = next(m["content"] for m in sent_messages if m["role"] == "user")
+    sent_messages = (
+        mock_openai_client.chat.completions.create.call_args[1]["messages"]
+    )
+    user_content = next(
+        m["content"] for m in sent_messages if m["role"] == "user"
+    )
     assert count_tokens(user_content) <= 30
 
 
@@ -90,12 +99,17 @@ def test_apply_review_rules_forces_review_on_low_confidence():
 
     threshold = settings.review_confidence_threshold
     low_confidence = threshold - 0.1 if threshold > 0.1 else 0.0
-    analysis = _valid_analysis(confidence=low_confidence, review_required=False)
+    analysis = _valid_analysis(
+        confidence=low_confidence, review_required=False
+    )
     assert llm_client.apply_review_rules(analysis).review_required is True
 
 
 def test_apply_review_rules_forces_review_on_negative_high_priority():
     analysis = _valid_analysis(
-        sentiment="negative", priority="high", confidence=0.95, review_required=False
+        sentiment="negative",
+        priority="high",
+        confidence=0.95,
+        review_required=False,
     )
     assert llm_client.apply_review_rules(analysis).review_required is True

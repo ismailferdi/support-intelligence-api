@@ -3,6 +3,7 @@ from pathlib import Path
 
 ENV_FILE_PATH = Path(__file__).resolve().parents[1] / '.env'
 
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=ENV_FILE_PATH,
@@ -16,7 +17,6 @@ class Settings(BaseSettings):
     database_url: str
     max_input_tokens: int = 3000
     review_confidence_threshold: float = 0.6
-
 
 
 settings = Settings()

@@ -20,7 +20,9 @@ CANNED_ANALYSIS = {
     "priority": "high",
     "sentiment": "negative",
     "summary": "Customer was charged twice and wants a refund.",
-    "suggested_response": "We are sorry for the double charge - a refund has been issued.",
+    "suggested_response": (
+        "We are sorry for the double charge - a refund has been issued."
+    ),
     "confidence": 0.9,
     "review_required": False,
 }
@@ -29,8 +31,12 @@ CANNED_ANALYSIS = {
 def make_openai_response(payload: dict) -> MagicMock:
     """Build a fake chat.completions response with usage metadata."""
     resp = MagicMock()
-    resp.choices = [MagicMock(message=MagicMock(content=json.dumps(payload)))]
-    resp.usage = MagicMock(prompt_tokens=100, completion_tokens=50, total_tokens=150)
+    resp.choices = [
+        MagicMock(message=MagicMock(content=json.dumps(payload)))
+    ]
+    resp.usage = MagicMock(
+        prompt_tokens=100, completion_tokens=50, total_tokens=150
+    )
     return resp
 
 
@@ -41,7 +47,9 @@ def mock_openai_client(monkeypatch):
     import app.llm_client as llm_client
 
     mock_client = MagicMock()
-    mock_client.chat.completions.create.return_value = make_openai_response(CANNED_ANALYSIS)
+    mock_client.chat.completions.create.return_value = (
+        make_openai_response(CANNED_ANALYSIS)
+    )
     monkeypatch.setattr(llm_client, "client", mock_client)
     return mock_client
 
@@ -73,7 +81,9 @@ def test_engine():
 
 @pytest.fixture
 def test_db_session(test_engine):
-    TestingSession = sessionmaker(bind=test_engine, autocommit=False, autoflush=False)
+    TestingSession = sessionmaker(
+        bind=test_engine, autocommit=False, autoflush=False
+    )
     session = TestingSession()
     yield session
     session.close()
@@ -84,6 +94,7 @@ def sample_ticket():
     return TicketRequest(
         ticket_id="ticket-001",
         subject="Charged twice this month",
-        body="I was charged twice on my card and need a refund as soon as possible.",
+        body="I was charged twice on my card and need a refund "
+        "as soon as possible.",
         customer_id="cust-123",
     )

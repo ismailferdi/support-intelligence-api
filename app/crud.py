@@ -3,7 +3,6 @@ from sqlalchemy import select, desc, func, case
 from sqlalchemy.exc import SQLAlchemyError
 from .db_models import Ticket, Analysis
 from .schemas import TicketRequest, TicketAnalysis
-from .config import settings
 
 
 def save_ticket(session: Session, ticket: TicketRequest) -> Ticket:
@@ -23,7 +22,14 @@ def save_ticket(session: Session, ticket: TicketRequest) -> Ticket:
         raise
 
 
-def save_analysis(session: Session, ticket_id: str, analysis: TicketAnalysis | None, usage: dict, success: bool, error_message: str | None) -> Analysis:
+def save_analysis(
+        session: Session,
+        ticket_id: str,
+        analysis: TicketAnalysis | None,
+        usage: dict,
+        success: bool,
+        error_message: str | None
+        ) -> Analysis:
     db_analysis = Analysis(
          ticket_id=ticket_id,
          success=success,
@@ -35,20 +41,20 @@ def save_analysis(session: Session, ticket_id: str, analysis: TicketAnalysis | N
          latency_ms=usage.get("latency_ms"),
     )
     if analysis is not None:
-         db_analysis.category = analysis.category
-         db_analysis.priority = analysis.priority
-         db_analysis.sentiment = analysis.sentiment
-         db_analysis.summary = analysis.summary
-         db_analysis.suggested_response = analysis.suggested_response
-         db_analysis.confidence = analysis.confidence
-         db_analysis.review_required = analysis.review_required
+        db_analysis.category = analysis.category
+        db_analysis.priority = analysis.priority
+        db_analysis.sentiment = analysis.sentiment
+        db_analysis.summary = analysis.summary
+        db_analysis.suggested_response = analysis.suggested_response
+        db_analysis.confidence = analysis.confidence
+        db_analysis.review_required = analysis.review_required
     try:
         session.add(db_analysis)
         session.commit()
         session.refresh(db_analysis)
     except SQLAlchemyError:
-            session.rollback()
-            raise
+        session.rollback()
+        raise
 
 
 def get_ticket_with_analysis(session: Session, ticket_id: str) -> dict | None:
@@ -57,7 +63,7 @@ def get_ticket_with_analysis(session: Session, ticket_id: str) -> dict | None:
     )
 
     if ticket is None:
-         return None
+        return None
 
     analysis = session.scalar(
          select(Analysis)

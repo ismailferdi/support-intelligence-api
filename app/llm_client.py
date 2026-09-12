@@ -4,7 +4,6 @@ analyze_ticket raises on exhausted API retries, malformed JSON,
 schema-validation failures, and pricing errors. It never returns a
 partially valid analysis.
 """
-import logging
 import openai
 import time
 import json
@@ -13,7 +12,11 @@ from pydantic import ValidationError
 
 from .config import settings
 from .pricing import estimate_cost
-from .prompt import TICKET_ANALYSIS_JSON_SCHEMA, build_system_prompt, build_user_prompt
+from .prompt import (
+    TICKET_ANALYSIS_JSON_SCHEMA,
+    build_system_prompt,
+    build_user_prompt,
+)
 from .schemas import TicketRequest, TicketAnalysis
 from .token_utils import count_tokens, truncate_to_token_limit
 from .logging_config import logger
@@ -23,6 +26,7 @@ client = openai.OpenAI(
     api_key=settings.openai_api_key,
     base_url=settings.base_url
 )
+
 
 @tenacity.retry(
         retry=tenacity.retry_if_exception_type(
@@ -56,7 +60,8 @@ def analyze_ticket(ticket: TicketRequest) -> tuple[TicketAnalysis, dict]:
     prompt_tokens = count_tokens(user_prompt)
     if prompt_tokens > settings.max_input_tokens:
         logger.warning(
-            "Truncating ticket body because prompt token count %d exceeds limit %d",
+            "Truncating ticket body because prompt token "
+            "count %d exceeds limit %d",
             prompt_tokens,
             settings.max_input_tokens
         )
@@ -91,7 +96,7 @@ def analyze_ticket(ticket: TicketRequest) -> tuple[TicketAnalysis, dict]:
 
     try:
         analysis = TicketAnalysis.model_validate(parsed)
-    except ValidationError as exc:
+    except ValidationError:
         logger.exception(
             "Model response failed schema validation for ticket %s: %r",
             ticket.ticket_id,
@@ -116,7 +121,6 @@ def analyze_ticket(ticket: TicketRequest) -> tuple[TicketAnalysis, dict]:
     return analysis, usage_metadata
 
 
-
 def apply_review_rules(analysis: TicketAnalysis) -> TicketAnalysis:
 
     review_required = analysis.review_required
@@ -124,9 +128,10 @@ def apply_review_rules(analysis: TicketAnalysis) -> TicketAnalysis:
     if analysis.confidence < settings.review_confidence_threshold:
         review_required = True
 
-    if analysis.sentiment == "negative" and analysis.priority in ("high", "urgent"):
+    if (
+        analysis.sentiment == "negative"
+        and analysis.priority in ("high", "urgent")
+    ):
         review_required = True
 
     return analysis.model_copy(update={"review_required": review_required})
-
-

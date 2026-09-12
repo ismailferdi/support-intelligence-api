@@ -1,10 +1,14 @@
 from sqlalchemy import create_engine, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
-engine = create_engine("postgresql://postgres:postgres@localhost:5432/postgres")
+engine = create_engine(
+    "postgresql://postgres:postgres@localhost:5432/postgres"
+)
+
 
 class Base(DeclarativeBase):
     pass
+
 
 class WarmupNote(Base):
     __tablename__ = "warmup_notes"

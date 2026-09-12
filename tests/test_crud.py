@@ -22,7 +22,9 @@ def _analysis(**overrides) -> TicketAnalysis:
     return TicketAnalysis(**base)
 
 
-def test_save_ticket_persists_retrievable_ticket(test_db_session, sample_ticket):
+def test_save_ticket_persists_retrievable_ticket(
+    test_db_session, sample_ticket
+):
     crud.save_ticket(test_db_session, sample_ticket)
     row = test_db_session.scalar(
         select(Ticket).where(Ticket.ticket_id == sample_ticket.ticket_id)
@@ -33,7 +35,9 @@ def test_save_ticket_persists_retrievable_ticket(test_db_session, sample_ticket)
     assert row.customer_id == sample_ticket.customer_id
 
 
-def test_save_analysis_persists_success_and_failure_records(test_db_session, sample_ticket):
+def test_save_analysis_persists_success_and_failure_records(
+    test_db_session, sample_ticket
+):
     crud.save_ticket(test_db_session, sample_ticket)
     usage = {
         "prompt_tokens": 100,
@@ -72,7 +76,9 @@ def test_save_analysis_persists_success_and_failure_records(test_db_session, sam
     assert fail_row.error_message == "boom"
 
 
-def test_get_analytics_summary_computes_correct_averages(test_db_session, sample_ticket):
+def test_get_analytics_summary_computes_correct_averages(
+    test_db_session, sample_ticket
+):
     crud.save_ticket(test_db_session, sample_ticket)
     seeds = [
         (100.0, 10, 0.001, True),
@@ -104,7 +110,9 @@ def test_get_analytics_summary_computes_correct_averages(test_db_session, sample
     assert summary["failure_rate"] == pytest.approx(1 / 3)
 
 
-def test_save_ticket_duplicate_rolls_back_and_reraises(test_db_session, sample_ticket):
+def test_save_ticket_duplicate_rolls_back_and_reraises(
+    test_db_session, sample_ticket
+):
     crud.save_ticket(test_db_session, sample_ticket)
     with pytest.raises(SQLAlchemyError):
         crud.save_ticket(test_db_session, sample_ticket)
@@ -115,7 +123,9 @@ def test_save_analysis_commit_failure_rolls_back_and_reraises(
 ):
     crud.save_ticket(test_db_session, sample_ticket)
     monkeypatch.setattr(
-        test_db_session, "commit", MagicMock(side_effect=SQLAlchemyError("db down"))
+        test_db_session,
+        "commit",
+        MagicMock(side_effect=SQLAlchemyError("db down")),
     )
     with pytest.raises(SQLAlchemyError):
         crud.save_analysis(
@@ -124,7 +134,9 @@ def test_save_analysis_commit_failure_rolls_back_and_reraises(
         )
 
 
-def test_get_ticket_with_analysis_returns_ticket_and_latest(test_db_session, sample_ticket):
+def test_get_ticket_with_analysis_returns_ticket_and_latest(
+    test_db_session, sample_ticket
+):
     assert crud.get_ticket_with_analysis(test_db_session, "missing") is None
     crud.save_ticket(test_db_session, sample_ticket)
     usage = {
@@ -134,8 +146,17 @@ def test_get_ticket_with_analysis_returns_ticket_and_latest(test_db_session, sam
         "cost_usd": 0.001,
         "latency_ms": 50.0,
     }
-    crud.save_analysis(test_db_session, sample_ticket.ticket_id, _analysis(), usage, True, None)
-    result = crud.get_ticket_with_analysis(test_db_session, sample_ticket.ticket_id)
+    crud.save_analysis(
+        test_db_session,
+        sample_ticket.ticket_id,
+        _analysis(),
+        usage,
+        True,
+        None,
+    )
+    result = crud.get_ticket_with_analysis(
+        test_db_session, sample_ticket.ticket_id
+    )
     assert result["ticket"].ticket_id == sample_ticket.ticket_id
     assert result["analysis"] is not None
     assert result["analysis"].category == "billing"

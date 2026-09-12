@@ -11,7 +11,8 @@ client = openai.OpenAI(
 #         messages=[
 #             {
 #                 "role": "system",
-#                 "content": "You are a helpful customer support assistant. Be concise and professional."
+#                 "content": "You are a helpful customer support "
+#                 "assistant. Be concise and professional."
 #             },
 #             {
 #                 "role": "user",
@@ -29,4 +30,5 @@ client = openai.OpenAI(
 #     print(f"Completion tokens: {completion.usage.completion_tokens}")
 #     print(f"Total tokens: {completion.usage.total_tokens}")
 # except openai.APIError as exc:
-#     print("Sorry, we're experiencing a temporary service problem. Please try again later.")
+#     print("Sorry, we're experiencing a temporary service "
+#           "problem. Please try again later.")

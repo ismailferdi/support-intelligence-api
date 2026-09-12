@@ -8,9 +8,11 @@ except KeyError:
 assert encoder.name == 'o200k_harmony'
 print(f"Encoder name: {encoder.name}")
 
+
 def count_tokens(text: str) -> int:
     tokens = encoder.encode(text)
     return len(tokens)
+
 
 samples = [
     "",
@@ -24,4 +26,4 @@ for sample in samples:
 
 assert count_tokens("") == 0
 assert count_tokens("Hello world") > 0
-assert count_tokens("My order arrived damaged.") >=4
+assert count_tokens("My order arrived damaged.") >= 4

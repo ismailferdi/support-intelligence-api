@@ -1,6 +1,7 @@
 import tiktoken
 from .config import settings
 
+
 def count_tokens(text: str, model: str = settings.openai_model) -> int:
     try:
         encoder = tiktoken.encoding_for_model(model)
@@ -11,7 +12,10 @@ def count_tokens(text: str, model: str = settings.openai_model) -> int:
 
     return len(tokens)
 
-def truncate_to_token_limit(text: str, max_tokens: int, model: str = settings.openai_model) -> str:
+
+def truncate_to_token_limit(
+    text: str, max_tokens: int, model: str = settings.openai_model
+) -> str:
     """Bluntly truncate text to a token limit.
 
     This may cut off text mid-thought. A production system might summarize
@@ -29,5 +33,3 @@ def truncate_to_token_limit(text: str, max_tokens: int, model: str = settings.op
 
     limited_text = encoder.decode(tokens)
     return limited_text
-
-

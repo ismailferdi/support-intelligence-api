@@ -15,9 +15,13 @@ class TicketRequest(BaseModel):
             raise ValueError("body must not be empty or whitespace-only.")
         return value
 
-TicketCategory = Literal["billing", "technical", "account", "feature_request", "other"]
+
+TicketCategory = Literal[
+    "billing", "technical", "account", "feature_request", "other"
+]
 TicketPriority = Literal["low", "medium", "high", "urgent"]
 TicketSentiment = Literal["positive", "neutral", "negative"]
+
 
 class TicketAnalysis(BaseModel):
     category: TicketCategory
@@ -36,5 +40,3 @@ class TicketAnalysisResponse(BaseModel):
     latency_ms: float
     total_tokens: int = Field(ge=0)
     cost_usd: float = Field(ge=0.0)
-
-

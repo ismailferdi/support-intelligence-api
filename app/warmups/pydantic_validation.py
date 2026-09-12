@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field, ValidationError
 
+
 class ToyModel(BaseModel):
     name: str
     cost: int = Field(ge=0, le=100)
