@@ -10,7 +10,10 @@ class TicketRequest(BaseModel):
 
     @field_validator("body")
     @classmethod
-    def body_must_not_be_empty(cls, value: str) -> str:
+    def body_must_not_be_empty(
+        cls: type["TicketRequest"], value: str
+    ) -> str:
+        """Reject empty or whitespace-only ticket bodies."""
         if not value.strip():
             raise ValueError("body must not be empty or whitespace-only.")
         return value

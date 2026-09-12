@@ -3,6 +3,11 @@ from .config import settings
 
 
 def count_tokens(text: str, model: str = settings.openai_model) -> int:
+    """Approximate the token count of text for budgeting purposes.
+
+    Falls back to the o200k_harmony encoding for unknown models;
+    authoritative usage still comes from the API response.
+    """
     try:
         encoder = tiktoken.encoding_for_model(model)
     except KeyError:

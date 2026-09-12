@@ -26,6 +26,10 @@ MODEL_PRICING = {
 def estimate_cost(
     prompt_tokens: int, completion_tokens: int, model: str
 ) -> float:
+    """Estimate the USD cost of an LLM call from token counts.
+
+    Raises KeyError when the model has no entry in MODEL_PRICING.
+    """
     try:
         pricing = MODEL_PRICING[model]
     except KeyError as exc:

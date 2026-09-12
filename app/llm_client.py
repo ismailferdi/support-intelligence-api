@@ -8,6 +8,7 @@ import openai
 import time
 import json
 import tenacity
+from typing import Any
 from pydantic import ValidationError
 
 from .config import settings
@@ -36,7 +37,12 @@ client = openai.OpenAI(
         wait=tenacity.wait_exponential(multiplier=2, min=2),
         reraise=True
 )
-def _complete_completion(messages: list[dict[str, str]]):
+def _complete_completion(messages: list[dict[str, str]]) -> Any:
+    """Send chat messages to the model with tenacity-managed retries.
+
+    Only RateLimitError/APITimeoutError are retried (5 attempts);
+    other API errors propagate to the caller.
+    """
     return client.chat.completions.create(
         model=settings.openai_model,
         messages=messages,
@@ -50,7 +56,9 @@ def _complete_completion(messages: list[dict[str, str]]):
     )
 
 
-def analyze_ticket(ticket: TicketRequest) -> tuple[TicketAnalysis, dict]:
+def analyze_ticket(
+        ticket: TicketRequest,
+) -> tuple[TicketAnalysis, dict[str, Any]]:
     """Analyze a ticket and return validated output with usage metadata.
 
     Raises API, JSON parsing, validation, or pricing errors instead of
@@ -110,7 +118,7 @@ def analyze_ticket(ticket: TicketRequest) -> tuple[TicketAnalysis, dict]:
         settings.openai_model
         )
 
-    usage_metadata = {
+    usage_metadata: dict[str, Any] = {
         "prompt_tokens": response.usage.prompt_tokens,
         "completion_tokens": response.usage.completion_tokens,
         "total_tokens": response.usage.total_tokens,
@@ -122,7 +130,12 @@ def analyze_ticket(ticket: TicketRequest) -> tuple[TicketAnalysis, dict]:
 
 
 def apply_review_rules(analysis: TicketAnalysis) -> TicketAnalysis:
+    """Force review_required for low-confidence or negative urgent tickets.
 
+    Returns a copy with review_required=True when confidence is below
+    the threshold or sentiment is negative with high/urgent priority;
+    otherwise preserves the model's original flag.
+    """
     review_required = analysis.review_required
 
     if analysis.confidence < settings.review_confidence_threshold:

@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+from collections.abc import AsyncIterator
 
 from openai import APIError
 from pydantic import ValidationError
@@ -20,7 +21,8 @@ from .logging_config import logger
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Initialize the database tables on application startup."""
     logger.info("Starting support-intelligence-api")
     init_db()
     yield
@@ -33,6 +35,7 @@ app = FastAPI(
 
 @app.get('/health', response_model=dict[str, str])
 def health() -> dict[str, str]:
+    """Report service liveness."""
     return {"status": "ok"}
 
 
@@ -41,6 +44,12 @@ def analyze_ticket_endpoint(
         ticket: TicketRequest,
         session: Session = Depends(get_session)
 ) -> TicketAnalysisResponse:
+    """Persist a ticket, analyze it via the LLM, and store the result.
+
+    Raises 503 when the ticket or analysis cannot be written to the
+    database, and 502 (after storing a failure record) when the LLM
+    analysis itself fails.
+    """
     try:
         save_ticket(session, ticket)
     except SQLAlchemyError as exc:
@@ -117,6 +126,7 @@ def get_ticket_with_analysis_endpoint(
     ticket_id: str,
     session: Session = Depends(get_session)
 ) -> dict:
+    """Fetch a ticket with its latest analysis, or raise 404 if unknown."""
     result = get_ticket_with_analysis(session, ticket_id)
 
     if result is None:
@@ -132,4 +142,5 @@ def get_ticket_with_analysis_endpoint(
 def get_analytics_summary_endpoint(
     session: Session = Depends(get_session)
 ) -> dict:
+    """Return aggregate stats across all stored analyses."""
     return get_analytics_summary(session)

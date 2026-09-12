@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy.orm import Session
 from sqlalchemy import select, desc, func, case
 from sqlalchemy.exc import SQLAlchemyError
@@ -6,6 +8,11 @@ from .schemas import TicketRequest, TicketAnalysis
 
 
 def save_ticket(session: Session, ticket: TicketRequest) -> Ticket:
+    """Persist a ticket request and return the stored row.
+
+    Raises SQLAlchemyError (after rollback) on DB failures
+    such as a duplicate ticket_id.
+    """
     try:
         db_ticket = Ticket(
             ticket_id=ticket.ticket_id,
@@ -26,10 +33,16 @@ def save_analysis(
         session: Session,
         ticket_id: str,
         analysis: TicketAnalysis | None,
-        usage: dict,
+        usage: dict[str, Any],
         success: bool,
         error_message: str | None
         ) -> Analysis:
+    """Persist an analysis (or failure record) and return the row.
+
+    Pass analysis=None with success=False to record an LLM
+    failure; usage may then be empty. Raises SQLAlchemyError
+    (after rollback) on DB failures.
+    """
     db_analysis = Analysis(
          ticket_id=ticket_id,
          success=success,
@@ -52,12 +65,21 @@ def save_analysis(
         session.add(db_analysis)
         session.commit()
         session.refresh(db_analysis)
+        return db_analysis
     except SQLAlchemyError:
         session.rollback()
         raise
 
 
-def get_ticket_with_analysis(session: Session, ticket_id: str) -> dict | None:
+def get_ticket_with_analysis(
+        session: Session,
+        ticket_id: str
+) -> dict[str, Ticket | Analysis | None]:
+    """Return a ticket with its latest analysis, or None if unknown.
+
+    The latest analysis is ordered by (created_at, id); its value
+    is None when the ticket has no analysis row yet.
+    """
     ticket = session.scalar(
         select(Ticket).where(Ticket.ticket_id == ticket_id)
     )
@@ -78,7 +100,12 @@ def get_ticket_with_analysis(session: Session, ticket_id: str) -> dict | None:
     }
 
 
-def get_analytics_summary(session: Session) -> dict:
+def get_analytics_summary(session: Session) -> dict[str, float | int | None]:
+    """Aggregate analysis stats across all stored analyses.
+
+    Averages are None when no analyses exist; totals and counts
+    default to 0.0 and 0 respectively.
+    """
     analytics_summary = session.execute(
         select(
             func.avg(Analysis.latency_ms).label("average_latency_ms"),

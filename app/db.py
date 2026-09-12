@@ -6,6 +6,7 @@ from .db_models import Base
 
 
 def get_engine() -> Engine:
+    """Create a SQLAlchemy engine bound to the configured database."""
     return create_engine(settings.database_url)
 
 
@@ -17,6 +18,7 @@ SessionLocal = sessionmaker(
 
 
 def get_session() -> Generator[Session, None, None]:
+    """Yield a request-scoped session, always closing it afterwards."""
     session = SessionLocal()
     try:
         yield session
@@ -25,6 +27,8 @@ def get_session() -> Generator[Session, None, None]:
 
 
 def init_db() -> None:
-    # Local-dev shortcut only: creates tables directly.
-    # Real deployments must run `alembic upgrade head` instead.
+    """Create tables directly for local dev.
+
+    Real deployments must run `alembic upgrade head` instead.
+    """
     Base.metadata.create_all(bind=get_engine())
