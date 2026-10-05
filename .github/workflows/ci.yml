@@ -27,7 +27,7 @@ jobs:
                     cache-dependency-path: pyproject.toml
 
             - name: Install dependencies
-              run: pip install -r requirements.txt requirements-dev.txt
+              run: pip install -r requirements.txt -r requirements-dev.txt
 
             - name: Run tests
               run: pytest tests/ -v --cov=app --cov-report=term-missing
