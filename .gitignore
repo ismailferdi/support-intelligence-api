@@ -1,0 +1,15 @@
+5-support-intelligence-api.md
+venv/
+__pycache__/
+*.pyc
+.env
+*.db
+pgdata/
+.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+.idea/
+.vscode/

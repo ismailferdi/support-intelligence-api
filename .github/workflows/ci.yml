@@ -1,0 +1,39 @@
+name: ci
+
+on:
+    push:
+    pull_request:
+
+
+jobs:
+    ci:
+        runs-on: ubuntu-latest
+        env:
+            OPENAI_API_KEY: dummy_key
+            OPENAI_MODEL: gpt-oss-20b
+            DATABASE_URL: postgresql+psycopg://ci:ci@localhost:5432/ci
+            POSTGRES_USER: ci
+            POSTGRES_PASSWORD: ci
+            POSTGRES_DB: ci
+        steps:
+            - name: check out code
+              uses: actions/checkout@v7
+
+            - name: Set up Python 3.12
+              uses: actions/setup-python@v7
+              with:
+                    python-version: 3.12
+                    cache: pip
+                    cache-dependency-path: pyproject.toml
+
+            - name: Install dependencies
+              run: pip install -r requirements.txt requirements-dev.txt
+
+            - name: Run tests
+              run: pytest tests/ -v --cov=app --cov-report=term-missing
+
+            - name: Run lint
+              run: flake8 app/ tests/
+
+            - name: Build docker image
+              run: docker build -t support-intelligence-api:ci -f docker/Dockerfile .

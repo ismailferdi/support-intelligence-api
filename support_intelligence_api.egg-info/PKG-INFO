@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: support-intelligence-api
+Version: 0.1.0
+Summary: Add your description here
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.141.1
+Requires-Dist: openai>=3.15.0
+Requires-Dist: psycopg[binary]>=3.3.5
+Requires-Dist: pydantic>=2.13.5
+Requires-Dist: pydantic-settings>=2.15.0
+Requires-Dist: sqlalchemy>=2.0.54
+Requires-Dist: tenacity>=9.1.4
+Requires-Dist: tiktoken>=0.14.0
+Requires-Dist: uvicorn[standard]>=0.53.0
